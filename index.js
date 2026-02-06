@@ -42,6 +42,7 @@ const requestLogger = (request, response, next) => {
 
 app.use(express.json());
 app.use(requestLogger);
+app.use(express.static("dist"));
 
 app.get("/info", (req, res) => {
   const info = `Phonebook has info for ${persons.length} people`;

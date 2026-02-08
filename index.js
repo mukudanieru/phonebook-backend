@@ -139,6 +139,33 @@ app.post(API_BASE_URL, async (req, res) => {
   });
 });
 
+app.put(`${API_BASE_URL}:id`, async (req, res, next) => {
+  const { name, number } = req.body;
+  const id = req.params.id;
+
+  Person.findById(id).then((person) => {
+    if (!person) {
+      res.status(404).json({
+        error: "NOT_FOUND",
+        message: "person not found",
+        id,
+      });
+    }
+
+    person.name = name;
+    person.number = number;
+
+    return person
+      .save()
+      .then((updatedPerson) => {
+        res.json(updatedPerson);
+      })
+      .catch((error) => {
+        next(error);
+      });
+  });
+});
+
 const unknownEndpoint = (req, res) => {
   response.status(404).send({ error: "unknown endpoint" });
 };

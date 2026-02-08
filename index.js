@@ -1,8 +1,11 @@
+require("dotenv").config();
 const express = require("express");
 var morgan = require("morgan");
+const Person = require("./models/person");
 
 const app = express();
 
+// TO BE REMOVED
 let persons = [
   {
     id: "1",
@@ -54,18 +57,24 @@ app.get("/info", (req, res) => {
 const API_BASE_URL = "/api/persons/";
 
 app.get(API_BASE_URL, (req, res) => {
-  res.json(persons);
+  Person.find({}).then((person) => {
+    res.json(person);
+  });
 });
 
 app.get(`${API_BASE_URL}:id`, (req, res) => {
   const id = req.params.id;
-  const person = persons.find((p) => p.id === id);
+  Person.findById(id).then((person) => {
+    if (!person) {
+      res.status(404).json({
+        error: "NOT_FOUND",
+        message: "person not found",
+        id,
+      });
+    }
 
-  if (!person) {
-    return res.status(404).json({ error: "missing person" });
-  }
-
-  res.json(person);
+    return res.json(person);
+  });
 });
 
 app.delete(`${API_BASE_URL}:id`, (req, res) => {
@@ -80,12 +89,6 @@ app.delete(`${API_BASE_URL}:id`, (req, res) => {
   res.status(200).json(personToDelete);
 });
 
-const generateId = () => {
-  const maxId =
-    persons.length > 0 ? Math.max(...persons.map((p) => Number(p.id))) : 0;
-  return String(maxId + 1);
-};
-
 morgan.token("body", (req) => {
   return JSON.stringify(req.body);
 });
@@ -94,30 +97,31 @@ app.use(
   morgan(":method :url :status :response-time[0] - :total-time ms :body\n---"),
 );
 
-app.post(API_BASE_URL, (req, res) => {
+app.post(API_BASE_URL, async (req, res) => {
   const { name, number } = req.body;
 
   if (!name || !number) {
     return res.status(400).json({
-      error: "name and number are required",
+      error: "MISSING_REQUIRED_FIELDS",
+      message: "name and number are required",
     });
   }
 
-  if (persons.some((p) => p.name === name)) {
+  if (await Person.exists({ name })) {
     return res.status(409).json({
-      error: "name must be unique",
+      error: "DUPLICATE_NAME",
+      message: "name must be unique",
     });
   }
 
-  const person = {
-    id: generateId(),
+  const person = new Person({
     name,
     number,
-  };
+  });
 
-  persons = persons.concat(person);
-
-  res.status(201).json(person);
+  person.save().then((person) => {
+    res.status(201).json(person);
+  });
 });
 
 const unknownEndpoint = (request, response) => {
@@ -126,7 +130,7 @@ const unknownEndpoint = (request, response) => {
 
 app.use(unknownEndpoint);
 
-const PORT = 3001;
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

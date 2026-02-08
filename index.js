@@ -56,12 +56,14 @@ app.get("/info", (req, res) => {
 
 const API_BASE_URL = "/api/persons/";
 
+// GET ALL
 app.get(API_BASE_URL, (req, res) => {
   Person.find({}).then((person) => {
     res.json(person);
   });
 });
 
+// GET EACH
 app.get(`${API_BASE_URL}:id`, (req, res) => {
   const id = req.params.id;
   Person.findById(id).then((person) => {
@@ -77,16 +79,25 @@ app.get(`${API_BASE_URL}:id`, (req, res) => {
   });
 });
 
+// DELETE REQUEST
 app.delete(`${API_BASE_URL}:id`, (req, res) => {
   const id = req.params.id;
-  const personToDelete = persons.find((p) => p.id === id);
-
-  if (!personToDelete) {
-    return res.status(404).json({ error: "Person not found" });
-  }
-
-  persons = persons.filter((p) => p.id !== id);
-  res.status(200).json(personToDelete);
+  Person.findByIdAndDelete(id)
+    .then((personToDelete) => {
+      if (personToDelete) {
+        res.status(200).json(personToDelete);
+      } else {
+        res.status(404).json({
+          error: "NOT_FOUND",
+          message: "person not found",
+          id,
+        });
+      }
+    })
+    .catch((error) => {
+      console.log(error);
+      res.status(400).json({ error: "INVALID_ID", message: "malformatted id" });
+    });
 });
 
 morgan.token("body", (req) => {
@@ -97,6 +108,7 @@ app.use(
   morgan(":method :url :status :response-time[0] - :total-time ms :body\n---"),
 );
 
+// POST REQUEST
 app.post(API_BASE_URL, async (req, res) => {
   const { name, number } = req.body;
 

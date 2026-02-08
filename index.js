@@ -64,23 +64,27 @@ app.get(API_BASE_URL, (req, res) => {
 });
 
 // GET EACH
-app.get(`${API_BASE_URL}:id`, (req, res) => {
+app.get(`${API_BASE_URL}:id`, (req, res, next) => {
   const id = req.params.id;
-  Person.findById(id).then((person) => {
-    if (!person) {
-      res.status(404).json({
-        error: "NOT_FOUND",
-        message: "person not found",
-        id,
-      });
-    }
+  Person.findById(id)
+    .then((person) => {
+      if (!person) {
+        res.status(404).json({
+          error: "NOT_FOUND",
+          message: "person not found",
+          id,
+        });
+      }
 
-    return res.json(person);
-  });
+      return res.json(person);
+    })
+    .catch((error) => {
+      next(error);
+    });
 });
 
 // DELETE REQUEST
-app.delete(`${API_BASE_URL}:id`, (req, res) => {
+app.delete(`${API_BASE_URL}:id`, (req, res, next) => {
   const id = req.params.id;
   Person.findByIdAndDelete(id)
     .then((personToDelete) => {
@@ -95,8 +99,7 @@ app.delete(`${API_BASE_URL}:id`, (req, res) => {
       }
     })
     .catch((error) => {
-      console.log(error);
-      res.status(400).json({ error: "INVALID_ID", message: "malformatted id" });
+      next(error);
     });
 });
 
@@ -136,11 +139,26 @@ app.post(API_BASE_URL, async (req, res) => {
   });
 });
 
-const unknownEndpoint = (request, response) => {
+const unknownEndpoint = (req, res) => {
   response.status(404).send({ error: "unknown endpoint" });
 };
 
 app.use(unknownEndpoint);
+
+const errorHandler = (error, req, res, next) => {
+  console.error(error.message);
+
+  if (error.name === "CastError") {
+    return res.status(400).json({
+      error: "INVALID_ID",
+      message: "malformatted id",
+    });
+  }
+
+  next(error);
+};
+
+app.use(errorHandler);
 
 const PORT = process.env.PORT;
 app.listen(PORT, () => {

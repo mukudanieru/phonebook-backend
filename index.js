@@ -47,8 +47,9 @@ app.use(express.json());
 app.use(requestLogger);
 app.use(express.static("dist"));
 
-app.get("/info", (req, res) => {
-  const info = `Phonebook has info for ${persons.length} people`;
+app.get("/info", async (req, res) => {
+  const personCount = await Person.countDocuments();
+  const info = `Phonebook has info for ${personCount} people`;
   const date = new Date();
 
   res.send(`${info}<br><br>${date}`);

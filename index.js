@@ -173,7 +173,7 @@ app.put(`${API_BASE_URL}:id`, async (req, res, next) => {
 });
 
 const unknownEndpoint = (req, res) => {
-  response.status(404).send({ error: "unknown endpoint" });
+  res.status(404).send({ error: "unknown endpoint" });
 };
 
 app.use(unknownEndpoint);

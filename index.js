@@ -113,7 +113,7 @@ app.use(
 );
 
 // POST REQUEST
-app.post(API_BASE_URL, async (req, res) => {
+app.post(API_BASE_URL, async (req, res, next) => {
   const { name, number } = req.body;
 
   if (!name || !number) {
@@ -135,9 +135,14 @@ app.post(API_BASE_URL, async (req, res) => {
     number,
   });
 
-  person.save().then((person) => {
-    res.status(201).json(person);
-  });
+  person
+    .save()
+    .then((person) => {
+      res.status(201).json(person);
+    })
+    .catch((error) => {
+      next(error);
+    });
 });
 
 app.put(`${API_BASE_URL}:id`, async (req, res, next) => {
@@ -174,12 +179,20 @@ const unknownEndpoint = (req, res) => {
 app.use(unknownEndpoint);
 
 const errorHandler = (error, req, res, next) => {
-  console.error(error.message);
+  const message = error.message;
+  console.error(message);
 
   if (error.name === "CastError") {
     return res.status(400).json({
       error: "INVALID_ID",
       message: "malformatted id",
+    });
+  }
+
+  if (error.name === "ValidationError") {
+    return res.status(400).json({
+      error: "VALIDATION_ERROR",
+      message,
     });
   }
 
